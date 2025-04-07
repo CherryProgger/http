@@ -21,3 +21,41 @@ ctions.Generic.List<LeaveReasonSystem.Models.LeaveReasonInfo>'
     C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(37,20): error CS0029: Cannot implicitly convert type 'Microsoft.AspNetCore.Mvc.OkObjectResult' to 'System.Colle
 ctions.Generic.List<LeaveReasonSystem.Models.LeaveReasonInfo>'
     C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(42,31): error CS0103: The name 'result' does not exist in the current context
+
+
+
+
+
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using LeaveReasonSystem.Data;
+using LeaveReasonSystem.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+var services = builder.Services;
+
+services.AddControllers();
+
+services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "LeaveReasonService", Version = "v1" });
+});
+
+// ✅ Правильная регистрация сервиса и контекста
+services.AddScoped<LeaveReasonService>();
+services.AddDbContext<LeaveReasonDbContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("v1/swagger.json", "LeaveReasonService v1"));
+}
+
+app.UseHttpsRedirection();
+app.UseRouting();
+app.MapControllers();
+app.Run();
