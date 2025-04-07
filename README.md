@@ -1,3 +1,3 @@
 "ConnectionStrings": {
-  "DefaultConnection": "Host=localhost;Port=5432;Database=LeaveReasonDb;Username=postgres;Password=yourpassword"
+  "DefaultConnection": "Server=SERVER_NAME;Database=LeaveReasonDb;Trusted_Connection=True;"
 }
