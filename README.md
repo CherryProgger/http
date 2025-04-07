@@ -1,40 +1,3 @@
-Service:
-
-using Microsoft.EntityFrameworkCore;
-using LeaveReasonsSystem.Data;
-using LeaveReasonsSystem.Models;
-
-namespace LeaveReasonsSystem.Services
-{
-    public class LeaveReasonService
-    {
-        private readonly LeaveReasonsDbContext _context;
-
-        private LeaveReasonService(LeaveReasonsDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<List<LeaveReasonInfo>> GetAllPersonsAsync()
-        {
-            var records = await _context.GetLeaveReasonRecordFromProcedureAsync();
-
-            var result = records.Select((record) => new LeaveReasonInfo
-            {
-                RowNumber = record.Id,
-                PersonId = record.PersonId,
-                FullName = record.FullName,
-                LeaveReasonDate = record.LeaveReasonDate
-            }).ToList();
-
-            return result;
-        }  
-    }
-}
-
-
-Controller:
-
 global using Microsoft.AspNetCore.Mvc;
 global using LeaveReasonSystem.Services;
 
@@ -81,7 +44,6 @@ public class MissingLeaveReasonController : ControllerBase
 }
 
 
-DBContext:
 
 using Microsoft.EntityFrameworkCore; 
 using System;
@@ -95,17 +57,65 @@ public class LeaveReasonDbContext : DbContext
     {
     }
 
-    //public DbSet<LeaveReasonInfo> leaveReason{get; set} = null!;
 
 
     public async Task<List<LeaveReasonInfo>> GetLeaveReasonRecordFromProcedureAsync()
     {
         return await this.Set<LeaveReasonInfo>()
-            .FromQqlRaw("exec [dbo].[sp_personsLeaveReasons]")
+            .FromSqlRaw("exec [dbo].[sp_personsLeaveReasons]")
             .ToListAsync();
     }
 }
-Programm.cs:
+
+namespace LeaveReasonSystem.Models
+{
+
+
+public class LeaveReasonInfo
+{
+    public int Id { get; set; }
+    public int PersonId { get; set; } 
+    public string FullName { get; set; } = null!;
+    public DateTime LeaveReasonDate { get; set; }
+}
+
+}
+
+
+
+using Microsoft.EntityFrameworkCore;
+using LeaveReasonSystem.Data;
+using LeaveReasonSystem.Models;
+
+namespace LeaveReasonSystem.Services
+{
+    public class LeaveReasonService
+    {
+        private readonly LeaveReasonDbContext _context;
+
+        public LeaveReasonService(LeaveReasonDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<LeaveReasonInfo>> GetAllPersonsAsync()
+        {
+            var records = await _context.GetLeaveReasonRecordFromProcedureAsync();
+
+            var result = records.Select((record) => new LeaveReasonInfo
+            {
+                RowNumber = record.Id,
+                PersonId = record.PersonId,
+                FullName = record.FullName,
+                LeaveReasonDate = record.LeaveReasonDate
+            }).ToList();
+
+            return result;
+        }  
+    }
+}
+
+
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -144,31 +154,19 @@ app.Run();
 
 
 ERRORS:
+PS C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App> dotnet clean
 
+Build succeeded in 0,8s
 PS C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App> dotnet build
 Restore complete (0,7s)
-  Leave Reasons App failed with 11 error(s) (0,5s)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(2,32): error CS0234: The type or namespace name 'Services' does not exist in the namespace 'LeaveReasonSystem'
-(are you missing an assembly reference?)
+  Leave Reasons App failed with 4 error(s) (0,9s)
     C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\Program.cs(3,25): error CS0234: The type or namespace name 'Data' does not exist in the namespace 'LeaveReasonSystem' (are you missing an assembly referenc
 e?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(2,26): error CS0234: The type or namespace name 'Data' does not exist in the namespace 'LeaveReasonsSystem' (are you missing
- an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(3,26): error CS0234: The type or namespace name 'Models' does not exist in the namespace 'LeaveReasonsSystem' (are you missi
-ng an assembly reference?)
+    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(2,25): error CS0234: The type or namespace name 'Data' does not exist in the namespace 'LeaveReasonSystem' (are you missing
+an assembly reference?)
+    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\Data\leaveReasonDBContext.cs(16,28): error CS0246: The type or namespace name 'LeaveReasonInfo' could not be found (are you missing a using directive or an
+ assembly reference?)
     C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(23,28): error CS0246: The type or namespace name 'LeaveReasonInfo' could not be found (are you missing a using
 directive or an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(16,32): error CS0246: The type or namespace name 'LeaveReasonInfo' could not be found (are you missing a using directive or
-an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\Data\leaveReasonsDBContext.cs(16,28): error CS0246: The type or namespace name 'LeaveReasonInfo' could not be found (are you missing a using directive or a
-n assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(13,22): error CS0246: The type or namespace name 'LeaveReasonService' could not be found (are you missing a usi
-ng directive or an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(9,26): error CS0246: The type or namespace name 'LeaveReasonsDbContext' could not be found (are you missing a using directiv
-e or an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\services\LeaveReasonService.cs(11,36): error CS0246: The type or namespace name 'LeaveReasonsDbContext' could not be found (are you missing a using directi
-ve or an assembly reference?)
-    C:\Users\tmp_AKorshunov\Documents\Projects\Leave Reasons App\controllers\MissingLeaveReasonController.cs(16,41): error CS0246: The type or namespace name 'LeaveReasonService' could not be found (are you missing a usi
-ng directive or an assembly reference?)
 
-Build failed with 11 error(s) in 1,6s
+Build failed with 4 error(s) in 2,0s
