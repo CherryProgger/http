@@ -1,50 +1,17 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
-using LeaveReasonSystem.Data;
-using LeaveReasonSystem.Services;
-using AllLeaveReasonsSystem.Data;
-using AllLeaveReasonsSystem.Services;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// DbContexts
-builder.Services.AddDbContext<LeaveReasonDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddDbContext<AllLeaveReasonsDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Services
-builder.Services.AddScoped<LeaveReasonService>();
-builder.Services.AddScoped<AllLeaveReasonsService>();
-
-builder.Services.AddControllers();
-
-// Swagger configs
-builder.Services.AddSwaggerGen(c =>
+public async Task<bool> UpdateLeaveReasonAsync(int personId, string leaveReason)
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "LeaveReasonService", Version = "v1" });
-    c.SwaggerDoc("v2", new OpenApiInfo { Title = "AllLeaveReasonsService", Version = "v2" });
-});
+    var result = await Database.ExecuteSqlRawAsync(
+        "EXEC sp_updateLeaveReason @p0, @p1",
+        parameters: new object[] { personId, leaveReason });
 
-var app = builder.Build();
-
-// Dev environment configuration
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        // Обе вкладки в одном Swagger UI
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "LeaveReasonService v1");
-        c.SwaggerEndpoint("/swagger/v2/swagger.json", "AllLeaveReasonsService v2");
-    });
+    return result > 0; // вернет true, если хотя бы одна строка обновлена
 }
 
-// Common pipeline
-app.UseHttpsRedirection();
-app.UseRouting();
-app.MapControllers();
-app.Run();
+
+
+public async Task<bool> PutLeaveReasonAsync(LeaveReasonRecord request)
+{
+    return await _dbContext.UpdateLeaveReasonAsync(request.PersonId, request.LeaveReason);
+}
+
+
