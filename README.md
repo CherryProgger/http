@@ -1,190 +1,103 @@
-Мой Сервис
-
-
-global using Microsoft.AspNetCore.Mvc;
-global using LeaveReasonSystem.Services;
-using LeaveReasonSystem.Models;
-
-namespace MissingLeaveReason.Controllers
-{
-
-[ApiController]
-[Route("/api/LeaveReason")]
-
-public class MissingLeaveReasonController : ControllerBase
-{
-    private readonly LeaveReasonService _LeaveReasonService;
-    private readonly ILogger<MissingLeaveReasonController> _logger;
-
-    public MissingLeaveReasonController(LeaveReasonService LeaveReasonService, ILogger<MissingLeaveReasonController> logger)
-    {
-        _LeaveReasonService = LeaveReasonService;
-        _logger = logger;
-    }
-    
-    [HttpGet("persons", Name = "GetLeaveReasonAsync")]
-    public async Task<ActionResult<List<LeaveReasonInfo>>> GetLeaveReasonAsync()
-    {
-        try
-        {
-            var result = await _LeaveReasonService.GetAllPersonsAsync();
-
-            if (result.Count == 0)
-            {
-                _logger.LogInformation("No Leave Reason records found.");
-                return Ok(result);
-            }
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while processing the GET request.");
-            return BadRequest("ERROR");
-        }
-    }
-
-
-    [HttpPut("persons", Name = "PutLeaveReasonAsync")]
-    public async Task<IActionResult>PutLeaveReasonAsync ([FromBody] LeaveReasonRecord request)
-    {
-    var result = await _LeaveReasonService.PutLeaveReasonAsync(request);
-        if (!result)
-        {
-            return BadRequest(result);
-        }
-        else
-            return Ok(result);
-    }
-
-
-}
-}
-
-
-Мой контроллер
-global using Microsoft.AspNetCore.Mvc;
-global using LeaveReasonSystem.Services;
-using LeaveReasonSystem.Models;
-
-namespace MissingLeaveReason.Controllers
-{
-
-[ApiController]
-[Route("/api/LeaveReason")]
-
-public class MissingLeaveReasonController : ControllerBase
-{
-    private readonly LeaveReasonService _LeaveReasonService;
-    private readonly ILogger<MissingLeaveReasonController> _logger;
-
-    public MissingLeaveReasonController(LeaveReasonService LeaveReasonService, ILogger<MissingLeaveReasonController> logger)
-    {
-        _LeaveReasonService = LeaveReasonService;
-        _logger = logger;
-    }
-    
-    [HttpGet("persons", Name = "GetLeaveReasonAsync")]
-    public async Task<ActionResult<List<LeaveReasonInfo>>> GetLeaveReasonAsync()
-    {
-        try
-        {
-            var result = await _LeaveReasonService.GetAllPersonsAsync();
-
-            if (result.Count == 0)
-            {
-                _logger.LogInformation("No Leave Reason records found.");
-                return Ok(result);
-            }
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while processing the GET request.");
-            return BadRequest("ERROR");
-        }
-    }
-
-
-    [HttpPut("persons", Name = "PutLeaveReasonAsync")]
-    public async Task<IActionResult>PutLeaveReasonAsync ([FromBody] LeaveReasonRecord request)
-    {
-    var result = await _LeaveReasonService.PutLeaveReasonAsync(request);
-        if (!result)
-        {
-            return BadRequest(result);
-        }
-        else
-            return Ok(result);
-    }
-
-
-}
-}
-
-
-
-LeaveReasonInfo
-
-
-
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
-using System.Globalization;
-
 namespace LeaveReasonSystem.Models
 {
+    public class LeaveReasonRecord
+    {
+        public int PersonId { get; set; }
+        public string LeaveReason { get; set; } = string.Empty;
+    }
+}
 
-[Keyless]
-public record LeaveReasonInfo
+
+
+
+public async Task<bool> UpdateLeaveReasonAsync(LeaveReasonRecord record)
 {
-    public int RowNumber { get; set; }
-    public int PersonId { get; set; }
+    try
+    {
+        var sql = @"UPDATE [YourTableName]
+                    SET [LeaveReasonColumn] = @reason
+                    WHERE [PersonId] = @personId";
 
-    [JsonIgnore]
-    public int ActualTerminationDate { get; set; }
+        var parameters = new[]
+        {
+            new SqlParameter("@reason", record.LeaveReason),
+            new SqlParameter("@personId", record.PersonId)
+        };
 
-    [JsonPropertyName("Actual_Termination_Date")]
-    public string ActualTerminationDateFormatted =>
-        DateTime.ParseExact(
-            ActualTerminationDate.ToString(),
-             "yyyyMMdd",
-             CultureInfo.InvariantCulture
-        ).ToString("dd.MM.yyyy");
-    public string FullName { get; set; } = string.Empty;
-
+        await Database.ExecuteSqlRawAsync(sql, parameters);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
 }
 
-}
 
 
 
-Контекст
-
-using Microsoft.EntityFrameworkCore;
+using LeaveReasonSystem.Data;
 using LeaveReasonSystem.Models;
 
-namespace LeaveReasonSystem.Data 
+namespace LeaveReasonSystem.Services
 {
-    public class LeaveReasonDbContext : DbContext
+    public class LeaveReasonService
     {
-        public LeaveReasonDbContext(DbContextOptions<LeaveReasonDbContext> options) : base(options) {}
+        private readonly LeaveReasonDbContext _context;
 
-    public DbSet<LeaveReasonInfo> LeaveReasonResults { get; set; } = null!;
+        public LeaveReasonService(LeaveReasonDbContext context)
+        {
+            _context = context;
+        }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<LeaveReasonInfo>().HasNoKey();
-        base.OnModelCreating(modelBuilder);
-    }
+        public async Task<List<LeaveReasonInfo>> GetAllPersonsAsync()
+        {
+            return await _context.GetLeaveReasonRecordFromProcedureAsync();
+        }
 
-    public async Task<List<LeaveReasonInfo>> GetLeaveReasonRecordFromProcedureAsync()
-    {
-        return await this.Set<LeaveReasonInfo>()
-            .FromSqlRaw("exec [dbo].[sp_personsLeaveReason]")
-            .ToListAsync();
+        public async Task<bool> PutLeaveReasonAsync(LeaveReasonRecord record)
+        {
+            return await _context.UpdateLeaveReasonAsync(record);
+        }
     }
 }
+
+
+
+
+using LeaveReasonSystem.Data;
+using LeaveReasonSystem.Services;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Подключение DB
+builder.Services.AddDbContext<LeaveReasonDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Сервисы
+builder.Services.AddScoped<LeaveReasonService>();
+
+// Контроллеры
+builder.Services.AddControllers();
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Middleware
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
