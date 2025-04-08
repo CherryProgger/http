@@ -1,103 +1,56 @@
-namespace LeaveReasonSystem.Models
-{
-    public class LeaveReasonRecord
-    {
-        public int PersonId { get; set; }
-        public string LeaveReason { get; set; } = string.Empty;
-    }
-}
-
-
-
-
-public async Task<bool> UpdateLeaveReasonAsync(LeaveReasonRecord record)
-{
-    try
-    {
-        var sql = @"UPDATE [YourTableName]
-                    SET [LeaveReasonColumn] = @reason
-                    WHERE [PersonId] = @personId";
-
-        var parameters = new[]
-        {
-            new SqlParameter("@reason", record.LeaveReason),
-            new SqlParameter("@personId", record.PersonId)
-        };
-
-        await Database.ExecuteSqlRawAsync(sql, parameters);
-        return true;
-    }
-    catch
-    {
-        return false;
-    }
-}
-
-
-
-
-using LeaveReasonSystem.Data;
-using LeaveReasonSystem.Models;
-
-namespace LeaveReasonSystem.Services
-{
-    public class LeaveReasonService
-    {
-        private readonly LeaveReasonDbContext _context;
-
-        public LeaveReasonService(LeaveReasonDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<List<LeaveReasonInfo>> GetAllPersonsAsync()
-        {
-            return await _context.GetLeaveReasonRecordFromProcedureAsync();
-        }
-
-        public async Task<bool> PutLeaveReasonAsync(LeaveReasonRecord record)
-        {
-            return await _context.UpdateLeaveReasonAsync(record);
-        }
-    }
-}
-
-
-
-
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using LeaveReasonSystem.Data;
 using LeaveReasonSystem.Services;
-using Microsoft.EntityFrameworkCore;
+using AllLeaveReasonsSystem.Data;
+using AllLeaveReasonsSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Подключение DB
+//DbContext
 builder.Services.AddDbContext<LeaveReasonDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AllLeaveReasonsDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Сервисы
+//Services
 builder.Services.AddScoped<LeaveReasonService>();
+builder.Services.AddScoped<AllLeaveReasonsService>();
 
-// Контроллеры
 builder.Services.AddControllers();
 
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//Swaggers
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "LeaveReasonService", Version = "v1" });
+});
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v2", new OpenApiInfo { Title = "AllLeaveReasonsService", Version = "v2" });
+});
 
 var app = builder.Build();
 
-// Middleware
+//IsDev
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "LeaveReasonService v1"));
+}
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+        c.SwaggerEndpoint("/swagger/v2/swagger.json", "AllLeaveReasonsService v2"));
 }
 
+//AppsConnection
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
+app.UseRouting();
 app.MapControllers();
-
 app.Run();
