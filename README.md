@@ -1,58 +1,87 @@
-@startuml
-actor Client
+using Microsoft.AspNetCore.Mvc;
+using LeaveReasonsSystem.Services;
+using LeaveReasonsSystem.Models;
 
-==Persons service==
-== Список людей с отсутствующими причинами увольнения ==
-Client -> PersonsController : GET /api/Persons/MissingLeaveReasons
-activate PersonsController
+namespace LeaveReasonsSystem.Controllers
+{
+    [ApiController]
+    [Route("/api/Persons")]
+    public class PersonsController : ControllerBase
+    {
+        private readonly PersonsLeaveReasonService _PersonsLeaveReasonService;
+        private readonly ILogger<PersonsController> _logger;
+        public PersonsController(PersonsLeaveReasonService PersonsLeaveReasonService, ILogger<PersonsController> logger)
+        {
+            _PersonsLeaveReasonService = PersonsLeaveReasonService;
+            _logger = logger;
+        }
 
-PersonsController -> PersonsLeaveReasonService : GetPersonsMissingLeaveReasonsAsync()
-activate PersonsLeaveReasonService
+        [HttpGet("MissingLeaveReasons", Name = "GetPersonsMissingLeaveReasonAsync")]
+        public async Task<ActionResult<List<LeaveReasonInfo>>> GetPersonsMissingLeaveReasonAsync()
+        {
+            try
+            {
+                var result = await _PersonsLeaveReasonService.GetPersonsAsync();
+                if (result.Count == 0)
+                {
+                    _logger.LogInformation("No Leave Reason records found.");
+                    return Ok(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while processing the GET request.");
+                return BadRequest("ERROR");
+            }
+        }
 
-PersonsLeaveReasonService -> AppDbContext : GetPersonsMissingLeaveReasonsAsync()
-activate AppDbContext
+        [HttpPut("MissingLeaveReasons", Name = "SetLeaveReasonAsync")]
+        public async Task<IActionResult> SetLeaveReasonAsync([FromBody] List<LeaveReasonRecord> records)
+        {
+            bool allSucceeded = true;
+            foreach (var record in records)
+            {
+                var result = await _PersonsLeaveReasonService.SetLeaveReasonAsync(record);
+                if (!result)
+                {
+                    allSucceeded = false;
+                    _logger.LogWarning($"Failed to update PersonId {record.PersonId}");
+                }
+            }
+            return allSucceeded ? Ok("All reasons updated") : StatusCode(207, "Some reasons failed to update");
+        }
+    }
+}
 
-AppDbContext -> SQL_Server : EXEC sp_personsLeaveReason
-activate SQL_Server
-SQL_Server --> AppDbContext : return set
-deactivate SQL_Server
 
-AppDbContext --> PersonsLeaveReasonService : List<LeaveReasonInfo>
-deactivate AppDbContext
 
-PersonsLeaveReasonService --> PersonsController : List<LeaveReasonInfo>
-deactivate PersonsLeaveReasonService
 
-PersonsController --> Client : 200 OK (JSON) 
-PersonsController --> Client : 400 BadRequest
-deactivate PersonsController
 
-== Обновление причин увольнения ==
-Client -> PersonsController : PUT /api/Persons/MissingLeaveReasons\nBody: [{personId, idLeaveReason}]
-activate PersonsController
 
-PersonsController -> PersonsLeaveReasonService : SetLeaveReasonsAsync(request)
-activate PersonsLeaveReasonService
 
-activate AppDbContext
-loop
-PersonsLeaveReasonService -> AppDbContext : UpdateLeaveReasonAsync(personId, idLeaveReason)
 
-AppDbContext -> SQL_Server : EXEC sp_testLeaveReasonsProcedure @PersonId, @IdLeaveReason
-activate SQL_Server
-SQL_Server --> AppDbContext : int rowsAffected
-deactivate SQL_Server
+using LeaveReasonsSystem.Data;
+using LeaveReasonsSystem.Models;
 
-AppDbContext --> PersonsLeaveReasonService : return success/failure (bool)
-end loop
+namespace LeaveReasonsSystem.Services
+{
+    public class PersonsLeaveReasonService
+    {
+        private readonly AppDbContext _context;
+        public PersonsLeaveReasonService(AppDbContext context)
+        {
+            _context = context;
+        }
 
-deactivate AppDbContext
+        public async Task<List<LeaveReasonInfo>> GetPersonsAsync()
+        {
+            return await _context.GetPersonsMissingLeaveReasonAsync();
+        }
 
-PersonsLeaveReasonService --> PersonsController : return result
-deactivate PersonsLeaveReasonService
-
-PersonsController --> Client : 200 OK 
-PersonsController --> Client : 400 BadRequest
-deactivate PersonsController
-
-@enduml
+        public async Task<bool> SetLeaveReasonAsync(LeaveReasonRecord request)
+        {
+            return await _context.UpdateLeaveReasonAsync(request.PersonId, request.IdLeaveReason);
+        }
+    }
+}
