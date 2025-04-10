@@ -1,54 +1,58 @@
 @startuml
 actor Client
 
-== GET /api/LeaveReason/persons ==
-Client -> MissingLeaveReasonController : GET /api/LeaveReason/persons
-activate MissingLeaveReasonController
+==Persons service==
+== Список людей с отсутствующими причинами увольнения ==
+Client -> PersonsController : GET /api/Persons/MissingLeaveReasons
+activate PersonsController
 
-MissingLeaveReasonController -> LeaveReasonService : GetAllPersonsAsync()
-activate LeaveReasonService
+PersonsController -> PersonsLeaveReasonService : GetPersonsMissingLeaveReasonsAsync()
+activate PersonsLeaveReasonService
 
-LeaveReasonService -> LeaveReasonDbContext : GetLeaveReasonFromProcedureAsync()
-activate LeaveReasonDbContext
+PersonsLeaveReasonService -> AppDbContext : GetPersonsMissingLeaveReasonsAsync()
+activate AppDbContext
 
-LeaveReasonDbContext -> SQL_Server : EXEC sp_personsLeaveReason
+AppDbContext -> SQL_Server : EXEC sp_personsLeaveReason
 activate SQL_Server
-SQL_Server --> LeaveReasonDbContext : List<LeaveReasonInfo>
+SQL_Server --> AppDbContext : return set
 deactivate SQL_Server
 
-LeaveReasonDbContext --> LeaveReasonService : return persons list
-deactivate LeaveReasonDbContext
+AppDbContext --> PersonsLeaveReasonService : List<LeaveReasonInfo>
+deactivate AppDbContext
 
-LeaveReasonService --> MissingLeaveReasonController : return persons list
-deactivate LeaveReasonService
+PersonsLeaveReasonService --> PersonsController : List<LeaveReasonInfo>
+deactivate PersonsLeaveReasonService
 
-MissingLeaveReasonController --> Client : 200 OK (JSON)
-deactivate MissingLeaveReasonController
+PersonsController --> Client : 200 OK (JSON) 
+PersonsController --> Client : 400 BadRequest
+deactivate PersonsController
 
-== PUT /api/LeaveReason/persons ==
-Client -> MissingLeaveReasonController : PUT /api/LeaveReason/persons\nBody: {personId, idLeaveReason}
-activate MissingLeaveReasonController
+== Обновление причин увольнения ==
+Client -> PersonsController : PUT /api/Persons/MissingLeaveReasons\nBody: [{personId, idLeaveReason}]
+activate PersonsController
 
-MissingLeaveReasonController -> LeaveReasonService : PutLeaveReasonAsync(request)
-activate LeaveReasonService
+PersonsController -> PersonsLeaveReasonService : SetLeaveReasonsAsync(request)
+activate PersonsLeaveReasonService
 
-LeaveReasonService -> LeaveReasonDbContext : UpdateLeaveReasonAsync(personId, idLeaveReason)
-activate LeaveReasonDbContext
+activate AppDbContext
+loop
+PersonsLeaveReasonService -> AppDbContext : UpdateLeaveReasonAsync(personId, idLeaveReason)
 
-LeaveReasonDbContext -> SQL_Server : EXEC sp_testLeaveReasonsProcedure @PersonId, @IdLeaveReason
+AppDbContext -> SQL_Server : EXEC sp_testLeaveReasonsProcedure @PersonId, @IdLeaveReason
 activate SQL_Server
-SQL_Server --> LeaveReasonDbContext : int rowsAffected
+SQL_Server --> AppDbContext : int rowsAffected
 deactivate SQL_Server
 
-LeaveReasonDbContext --> LeaveReasonService : return success/failure (bool)
-deactivate LeaveReasonDbContext
+AppDbContext --> PersonsLeaveReasonService : return success/failure (bool)
+end loop
 
-LeaveReasonService --> MissingLeaveReasonController : return result
-deactivate LeaveReasonService
+deactivate AppDbContext
 
-MissingLeaveReasonController --> Client : 200 OK / 400 BadRequest
-deactivate MissingLeaveReasonController
+PersonsLeaveReasonService --> PersonsController : return result
+deactivate PersonsLeaveReasonService
 
-==Leave Reason App==
+PersonsController --> Client : 200 OK 
+PersonsController --> Client : 400 BadRequest
+deactivate PersonsController
 
 @enduml
