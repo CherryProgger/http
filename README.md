@@ -1,87 +1,48 @@
-using Microsoft.AspNetCore.Mvc;
-using LeaveReasonsSystem.Services;
-using LeaveReasonsSystem.Models;
-
-namespace LeaveReasonsSystem.Controllers
+public class PersonsLeaveReasonService
 {
-    [ApiController]
-    [Route("/api/Persons")]
-    public class PersonsController : ControllerBase
-    {
-        private readonly PersonsLeaveReasonService _PersonsLeaveReasonService;
-        private readonly ILogger<PersonsController> _logger;
-        public PersonsController(PersonsLeaveReasonService PersonsLeaveReasonService, ILogger<PersonsController> logger)
-        {
-            _PersonsLeaveReasonService = PersonsLeaveReasonService;
-            _logger = logger;
-        }
+    private readonly AppDbContext _context;
+    private readonly ILogger<PersonsLeaveReasonService> _logger;
 
-        [HttpGet("MissingLeaveReasons", Name = "GetPersonsMissingLeaveReasonAsync")]
-        public async Task<ActionResult<List<LeaveReasonInfo>>> GetPersonsMissingLeaveReasonAsync()
+    public PersonsLeaveReasonService(AppDbContext context, ILogger<PersonsLeaveReasonService> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task<List<(int personId, bool success)>> SetLeaveReasonsAsync(List<LeaveReasonRecord> requests)
+    {
+        var results = new List<(int personId, bool success)>();
+
+        foreach (var request in requests)
         {
             try
             {
-                var result = await _PersonsLeaveReasonService.GetPersonsAsync();
-                if (result.Count == 0)
-                {
-                    _logger.LogInformation("No Leave Reason records found.");
-                    return Ok(result);
-                }
-                return Ok(result);
+                var success = await _context.UpdateLeaveReasonAsync(request.PersonId, request.IdLeaveReason);
+                results.Add((request.PersonId, success));
+
+                if (!success)
+                    _logger.LogWarning($"Не удалось обновить причину увольнения для PersonId {request.PersonId}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while processing the GET request.");
-                return BadRequest("ERROR");
+                _logger.LogError(ex, $"Ошибка при обновлении PersonId {request.PersonId}");
+                results.Add((request.PersonId, false));
             }
         }
 
-        [HttpPut("MissingLeaveReasons", Name = "SetLeaveReasonAsync")]
-        public async Task<IActionResult> SetLeaveReasonAsync([FromBody] List<LeaveReasonRecord> records)
-        {
-            bool allSucceeded = true;
-            foreach (var record in records)
-            {
-                var result = await _PersonsLeaveReasonService.SetLeaveReasonAsync(record);
-                if (!result)
-                {
-                    allSucceeded = false;
-                    _logger.LogWarning($"Failed to update PersonId {record.PersonId}");
-                }
-            }
-            return allSucceeded ? Ok("All reasons updated") : StatusCode(207, "Some reasons failed to update");
-        }
+        return results;
     }
 }
 
 
-
-
-
-
-
-
-using LeaveReasonsSystem.Data;
-using LeaveReasonsSystem.Models;
-
-namespace LeaveReasonsSystem.Services
+[HttpPut("MissingLeaveReasons", Name = "SetLeaveReasonAsync")]
+public async Task<IActionResult> SetLeaveReasonAsync([FromBody] List<LeaveReasonRecord> records)
 {
-    public class PersonsLeaveReasonService
-    {
-        private readonly AppDbContext _context;
-        public PersonsLeaveReasonService(AppDbContext context)
-        {
-            _context = context;
-        }
+    var results = await _PersonsLeaveReasonService.SetLeaveReasonsAsync(records);
+    var failed = results.Where(r => !r.success).Select(r => r.personId).ToList();
 
-        public async Task<List<LeaveReasonInfo>> GetPersonsAsync()
-        {
-            return await _context.GetPersonsMissingLeaveReasonAsync();
-        }
+    if (failed.Count == 0)
+        return Ok("All reasons updated");
 
-        public async Task<bool> SetLeaveReasonAsync(LeaveReasonRecord request)
-        {
-            return await _context.UpdateLeaveReasonAsync(request.PersonId, request.IdLeaveReason);
-        }
-    }
+    return StatusCode(207, new { message = "Some reasons failed", failedIds = failed });
 }
