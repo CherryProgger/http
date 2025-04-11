@@ -1,33 +1,10 @@
-
-// Основной каркас приложения Leave Reasons System
+// App.jsx (главный компонент приложения)
 
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Select, message } from "antd";
+import { getPersons, getLeaveReasons, saveLeaveReasons } from "./api/leaveReasonsApi";
 
 const { Option } = Select;
-
-// API функции
-const getPersons = async () => {
-  const res = await fetch("http://localhost:5175/api/Persons/MissingLeaveReasons");
-  if (!res.ok) throw new Error("Ошибка загрузки сотрудников");
-  return res.json();
-};
-
-const getLeaveReasons = async () => {
-  const res = await fetch("http://localhost:5175/api/LeaveReasons");
-  if (!res.ok) throw new Error("Ошибка загрузки справочника причин");
-  return res.json();
-};
-
-const saveLeaveReasons = async (data) => {
-  const res = await fetch("http://localhost:5175/api/Persons/MissingLeaveReasons", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Ошибка сохранения данных");
-  return res.json();
-};
 
 export default function App() {
   const [persons, setPersons] = useState([]);
