@@ -1,18 +1,14 @@
-C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Frontend>npm install -g tailwindcss
+"scripts": {
+  "tailwind:init": "tailwindcss init -p"
+}
 
-added 1 package in 3s
 
-'tailwind' is not recognized as an internal or external command,
-operable program or batch file.
+npm run tailwind:init
 
-C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Frontend>npm tailwindcss init -p
-Unknown command: "tailwindcss"
 
-To see a list of supported npm commands, run:
-  npm help
+"scripts": {
+  "tailwind:init": "node ./node_modules/tailwindcss/lib/cli.js init -p"
+}
 
-C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Frontend>npx tailwindcss init -p
-'tailwind' is not recognized as an internal or external command,
-operable program or batch file.
 
-C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Frontend>
+node ./node_modules/tailwindcss/lib/cli.js init -p
