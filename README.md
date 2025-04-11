@@ -1,7 +1,7 @@
-// App.jsx (обновленный компонент приложения с улучшенным Header и кнопкой "Изменить")
+// App.jsx (обновленный компонент приложения с поддержкой переключения языка RU/EN)
 
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Select, message, Layout } from "antd";
+import { Table, Button, Modal, Select, message, Layout, Switch } from "antd";
 import { getPersons, getLeaveReasons, saveLeaveReasons } from "./api/leaveReasonsApi";
 
 const { Option } = Select;
@@ -14,6 +14,7 @@ export default function App() {
   const [filterType, setFilterType] = useState("Все");
   const [changes, setChanges] = useState({});
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [lang, setLang] = useState("ru"); // ru | en
 
   useEffect(() => {
     loadData();
@@ -58,7 +59,7 @@ export default function App() {
         <>
           {changes[person.personId] ? (
             <span style={{ marginRight: 8 }}>
-              {leaveReasons.find((r) => r.id === changes[person.personId])?.nameLocal || "Выбрано"}
+              {leaveReasons.find((r) => r.id === changes[person.personId])?.[lang === "ru" ? "nameLocal" : "name"] || "Выбрано"}
             </span>
           ) : null}
 
@@ -72,8 +73,13 @@ export default function App() {
 
   return (
     <Layout>
-      <Header style={{ background: '#e6f0fa', color: '#004785', fontSize: '24px', padding: '0 20px', fontWeight: 'bold' }}>
+      <Header style={{ background: '#e6f0fa', color: '#004785', fontSize: '24px', padding: '0 20px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         Leave Reasons
+        <div>
+          <span style={{ marginRight: 8 }}>RU</span>
+          <Switch checked={lang === "en"} onChange={(checked) => setLang(checked ? "en" : "ru")} />
+          <span style={{ marginLeft: 8 }}>EN</span>
+        </div>
       </Header>
 
       <Content style={{ padding: 20 }}>
@@ -117,7 +123,7 @@ export default function App() {
                 setChanges({ ...changes, [selectedPerson.personId]: reason.id });
                 setSelectedPerson(null);
               }}>
-              {reason.nameLocal}
+              {reason[lang === "ru" ? "nameLocal" : "name"]}
             </div>
           ))}
         </Modal>
