@@ -155,3 +155,19 @@ builder.Services.AddCors(options =>
 });
 
 app.UseCors("AllowFrontend");
+
+
+
+PS C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend> dotnet run
+Using launch settings from C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend\Properties\launchSettings.json...
+Building...
+Unhandled exception. System.InvalidOperationException: The service collection cannot be modified because it is read-only.
+   at Microsoft.Extensions.DependencyInjection.ServiceCollection.ThrowReadOnlyException()
+   at Microsoft.Extensions.DependencyInjection.ServiceCollection.System.Collections.Generic.ICollection<Microsoft.Extensions.DependencyInje
+ction.ServiceDescriptor>.Add(ServiceDescriptor item)
+   at Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(IServiceCollection services, Type serviceTyp
+e, Object implementationInstance)
+   at Microsoft.Extensions.DependencyInjection.OptionsServiceCollectionExtensions.Configure[TOptions](IServiceCollection services, String n
+ame, Action`1 configureOptions)
+   at Microsoft.Extensions.DependencyInjection.CorsServiceCollectionExtensions.AddCors(IServiceCollection services, Action`1 setupAction)
+   at Program.<Main>$(String[] args) in C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend\Program.cs:line 36
