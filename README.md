@@ -1,17 +1,4 @@
-.vtb-table-row:hover {
-  background-color: #e6f0fa !important; /* Светло-синий ховер */
-}
-
-.vtb-table .ant-table-thead > tr > th {
-  background-color: #004785;
-  color: white;
-  font-weight: bold;
-}
-
-
-
-
-// App.jsx (главный компонент приложения с Header и стилизацией таблицы в цветах ВТБ)
+// App.jsx (обновленный компонент приложения с улучшенным Header и кнопкой "Изменить")
 
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Select, message, Layout } from "antd";
@@ -63,19 +50,21 @@ export default function App() {
 
   const columns = [
     { title: "ID", dataIndex: "personId" },
-    { title: "Дата увольнения", dataIndex: "actualTerminationDate" },
+    { title: "Дата увольнения", dataIndex: "ActualTerminationDate" },
     { title: "Имя", dataIndex: "fullName" },
     {
       title: "Причина",
       render: (_, person) => (
         <>
           {changes[person.personId] ? (
-            <span>
+            <span style={{ marginRight: 8 }}>
               {leaveReasons.find((r) => r.id === changes[person.personId])?.nameLocal || "Выбрано"}
             </span>
-          ) : (
-            <Button type="primary" onClick={() => setSelectedPerson(person)}>Добавить</Button>
-          )}
+          ) : null}
+
+          <Button type="primary" onClick={() => setSelectedPerson(person)}>
+            {changes[person.personId] ? "Изменить" : "Добавить"}
+          </Button>
         </>
       ),
     },
@@ -83,7 +72,7 @@ export default function App() {
 
   return (
     <Layout>
-      <Header style={{ background: '#004785', color: 'white', fontSize: '24px', padding: '0 20px' }}>
+      <Header style={{ background: '#e6f0fa', color: '#004785', fontSize: '24px', padding: '0 20px', fontWeight: 'bold' }}>
         Leave Reasons
       </Header>
 
