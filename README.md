@@ -41,7 +41,7 @@ export default function App() {
       await saveLeaveReasons(dataToSave);
       message.success(lang === "ru" ? "Успешно сохранено" : "Successfully saved");
       setChanges({});
-      await loadData(); // перезагрузка данных — убирает людей с уже установленной причиной
+      await loadData(); // перезагрузка — человек пропадает из списка
     } catch (e) {
       message.error(e.message);
     }
@@ -62,8 +62,10 @@ export default function App() {
     },
   };
 
+  const getDefaultFilterValue = () => (lang === "ru" ? "Все" : "All types");
+
   const filteredReasons = leaveReasons.filter(
-    (r) => filterType === (lang === "ru" ? "Все" : "All types") || r.leaveType === filterType
+    (r) => filterType === getDefaultFilterValue() || r.leaveType === filterType
   );
 
   const columns = [
@@ -86,7 +88,13 @@ export default function App() {
             </span>
           ) : null}
 
-          <Button type="primary" onClick={() => setSelectedPerson(person)}>
+          <Button
+            type="primary"
+            onClick={() => {
+              setFilterType(getDefaultFilterValue());
+              setSelectedPerson(person);
+            }}
+          >
             {changes[person.personId]
               ? lang === "ru" ? "Изменить" : "Edit"
               : lang === "ru" ? "Добавить" : "Add"}
@@ -99,7 +107,7 @@ export default function App() {
   return (
     <Layout>
       <Header style={{ background: '#e6f0fa', color: '#004785', fontSize: '24px', padding: '0 20px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {lang === "ru" ? "Причины увольнения" : "Leave Reasons"}
+        Leave Reasons
         <div>
           <span style={{ marginRight: 8 }}>RU</span>
           <Switch checked={lang === "en"} onChange={(checked) => setLang(checked ? "en" : "ru")} />
@@ -136,7 +144,7 @@ export default function App() {
             value={filterType}
             onChange={(value) => setFilterType(value)}
           >
-            <Option value={lang === "ru" ? "Все" : "All types"}>
+            <Option value={getDefaultFilterValue()}>
               {localizedFilter[lang].all}
             </Option>
             <Option value="Voluntary">{localizedFilter[lang].voluntary}</Option>
