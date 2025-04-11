@@ -156,24 +156,6 @@ builder.Services.AddCors(options =>
 
 app.UseCors("AllowFrontend");
 
-
-
-PS C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend> dotnet run
-Using launch settings from C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend\Properties\launchSettings.json...
-Building...
-Unhandled exception. System.InvalidOperationException: The service collection cannot be modified because it is read-only.
-   at Microsoft.Extensions.DependencyInjection.ServiceCollection.ThrowReadOnlyException()
-   at Microsoft.Extensions.DependencyInjection.ServiceCollection.System.Collections.Generic.ICollection<Microsoft.Extensions.DependencyInje
-ction.ServiceDescriptor>.Add(ServiceDescriptor item)
-   at Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(IServiceCollection services, Type serviceTyp
-e, Object implementationInstance)
-   at Microsoft.Extensions.DependencyInjection.OptionsServiceCollectionExtensions.Configure[TOptions](IServiceCollection services, String n
-ame, Action`1 configureOptions)
-   at Microsoft.Extensions.DependencyInjection.CorsServiceCollectionExtensions.AddCors(IServiceCollection services, Action`1 setupAction)
-   at Program.<Main>$(String[] args) in C:\Users\tmp_AKorshunov\Documents\Projects\LeaveReasonsSystem\Backend\Program.cs:line 36
-
-
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using LeaveReasonsSystem.Data;
@@ -181,34 +163,24 @@ using LeaveReasonsSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DbContexts
+// ✅ 1. DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Services
+// ✅ 2. Services
 builder.Services.AddScoped<PersonsLeaveReasonService>();
 builder.Services.AddScoped<LeaveReasonsService>();
 
+// ✅ 3. Controllers
 builder.Services.AddControllers();
 
-// Swagger configs
+// ✅ 4. Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "LeaveReasonService", Version = "v1" });
 });
 
-var app = builder.Build();
-
-// Dev environment configuration
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "LeaveReasonService v1");
-    });
-}
-
+// ✅ 5. CORS (важно: ДО builder.Build())
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
@@ -218,11 +190,23 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
 });
 
+// ✅ 6. Build
+var app = builder.Build();
+
+// ✅ 7. Dev environment
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "LeaveReasonService v1");
+    });
+}
+
+// ✅ 8. Middleware
 app.UseCors("AllowFrontend");
-
-
-// Common pipeline
 app.UseHttpsRedirection();
-app.UseRouting();
+app.UseAuthorization();
 app.MapControllers();
+
 app.Run();
